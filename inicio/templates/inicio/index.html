@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+
+<h2>Datos generales de cabina</h2>
+
+  <p>Totales:</p>
+  <ul>
+    <li><strong>Clientes:</strong> {{ num_clientes }}</li>
+    <li><strong>Sesiones:</strong> {{ num_sesiones }}</li>
+  </ul>
+<!--  <p>Sesiones <input id="fecha_sesion" type="date" value="{% now 'Y-m-d' %}">: </p> -->
+  <p>Sesiones hoy: </p>
+
+{% if lista_sesiones_hoy %}
+    <ul>
+    {% for sesion in lista_sesiones_hoy %}
+        <li>{{ sesion }} {% if sesion.esta_firmada %} (Firmada) {% endif %}</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No hay sesiones en esta fecha.</p>
+{% endif %}
+
+{% endblock %}

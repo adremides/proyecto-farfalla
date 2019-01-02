@@ -1,0 +1,24 @@
+{% extends "inicio/base.html" %}
+
+{% block content %}
+
+
+
+  <form method="get">
+    {{ filtro_sesiones.form.as_p }}
+    <button type="submit">Buscar</button>
+  </form>
+
+{% if filtro_sesiones %}
+  {% if filtro_sesiones.qs %}
+    <ul>
+    {% for sesion in filtro_sesiones.qs %}
+        <li>{{ sesion }} - {{ sesion.cliente }} {% if sesion.esta_firmada %}(se atendió con {{ sesion.responsable }}){% endif %} {% if sesion.esta_firmada %} (Firmada) {% endif %}</li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p>Este cliente no se ha hecho ninguna sesión.</p>
+  {% endif %}
+{% endif %}
+
+{% endblock %}

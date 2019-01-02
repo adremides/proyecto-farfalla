@@ -1,0 +1,12 @@
+__pycache__
+venv
+*.pyc
+.env
+.idea
+.cache
+.local
+.virtualenvs
+static
+my_admin/static
+farfalla/settings.py
+db.sqlite3
