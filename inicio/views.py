@@ -8,10 +8,13 @@ from .filters import SesionFilter, ClienteSesionFilter
 from django.urls import reverse
 from django.http import HttpResponseRedirect
 
+from django.contrib.auth.decorators import login_required
+
 # def index(request):
 #     return HttpResponse("Estoy en inicio")
 
 # --------- stub -----------
+@login_required
 def index(request):
     num_clientes = Cliente.objects.all().count()
     num_sesiones = Sesion.objects.all().count()

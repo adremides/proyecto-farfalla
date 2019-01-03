@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 app_name = 'inicio'
@@ -8,4 +8,5 @@ urlpatterns = [
     path('test/<fecha>', views.test, name='test'),
     path('sesiones', views.sesiones, name='sesiones'),
     path('sesiones/<id_cliente>', views.sesiones, name='sesiones'),
+    path('accounts/', include('django.contrib.auth.urls')),
 ]
