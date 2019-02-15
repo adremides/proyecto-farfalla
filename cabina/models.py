@@ -32,6 +32,16 @@ class Sesion(models.Model):
     actual = models.IntegerField('Sesión pack', null=True, blank=True)
     pack = models.ForeignKey('cabina.Pack', on_delete=models.CASCADE, null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        estoy_creando = not self.pk
+        super(Sesion, self).save(*args, **kwargs)
+        if not estoy_creando:
+            print('la diferencia entre self.actual(%s) y self.pack.proxima (%s) es %s' %(self.actual,
+                                                                                         self.pack.proxima,
+                                                                                         self.actual - self.pack.proxima))
+            if self.actual - self.pack.proxima == 0: # Esto detecta si es la próxima sesion disponible
+                # Si es, la próxima será la siguiente del pack, a menos de que esta sea la última
+                registro_pack = Pack.objects.filter(pk=self.pack.pk).update(proxima=self.actual + 1)
 
 
     def es_pack(self):
@@ -88,18 +98,24 @@ class Pack(models.Model):
                                 )
     pagada = models.BooleanField("Pagada", default=False)
     responsable = models.ForeignKey('cabina.Responsable', on_delete=models.PROTECT)
+    proxima = models.PositiveIntegerField('Próxima sesión disponible', default=1)
 
     def save(self, *args, **kwargs):
+        estoy_creando = not self.pk
+
         super(Pack, self).save(*args, **kwargs)
-        for actual in range(1, self.cant_sesiones+1):
-            p = Sesion.objects.create(cliente=self.cliente,
-                                      fecha=None,
-                                      duracion=self.tipo,
-                                      responsable=self.responsable,
-                                      pack=self,
-                                      pagada=self.pagada,
-                                      actual=actual)
-            p.save()
+        if estoy_creando:
+            for actual in range(1, self.cant_sesiones+1):
+                p = Sesion.objects.create(cliente=self.cliente,
+                                          fecha=None,
+                                          duracion=self.tipo,
+                                          responsable=self.responsable,
+                                          pack=self,
+                                          pagada=self.pagada,
+                                          actual=actual)
+                p.save()
+        else:
+            registros_sesiones = Sesion.objects.filter(pack=self.pk).update(cliente=self.cliente)
 
     def __str__(self):
         # get_field_display() muestra el str del choice que lleva el campo cant_sesiones del modelo Pack

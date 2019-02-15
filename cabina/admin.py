@@ -1,6 +1,7 @@
 import sys
 from django import forms
 from django.contrib import admin, messages
+from django.db.models import Q, Sum, Avg, Min, F, ExpressionWrapper, BooleanField
 import nested_admin
 from .models import Cliente, Sesion, Firma, Responsable, Pack
 
@@ -8,6 +9,22 @@ from django.forms.models import BaseInlineFormSet
 
 class PackAdmin(admin.ModelAdmin):
     autocomplete_fields = ('cliente',)
+    fields = ['cliente',
+              'cant_sesiones',
+              'tipo',
+              'responsable',
+              'pagada',
+              'proxima',
+    ]
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj: # editing an existing object
+            return self.readonly_fields + (# 'cliente',
+                                           'cant_sesiones',
+                                           'tipo',
+                                           'responsable',
+                                           'pagada')
+        return self.readonly_fields
 
 class SesionProximaFilter(admin.SimpleListFilter):
     title = 'próxima sesión de pack'
@@ -21,9 +38,9 @@ class SesionProximaFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value() == 'si':
-            #return queryset.distinct('cliente__nombre_y_apellido')
-            return queryset.order_by('cliente__nombre_y_apellido')
-            #return queryset.exclude(pack=None)
+            qs_preparado = queryset.annotate(es_proxima=ExpressionWrapper(F('actual')-F('pack__proxima'),
+                                                                          output_field=BooleanField()))
+            return qs_preparado.filter(es_proxima=True)
 
 class SesionEsPackFilter(admin.SimpleListFilter):
     title = 'si es pack o no'
@@ -126,6 +143,8 @@ class SesionAdmin(nested_admin.NestedModelAdmin):
     readonly_fields = ('esta_firmada', 'es_pack')
     ordering = ('cliente__nombre_y_apellido',)
     search_fields = ('cliente__nombre_y_apellido', )
+
+    date_hierarchy = 'fecha'
 
     list_filter = (
         'fecha',
