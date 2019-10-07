@@ -1,7 +1,7 @@
 import sys
 from django import forms
 from django.contrib import admin, messages
-from django.db.models import Q, Sum, Avg, Min, F, ExpressionWrapper, BooleanField
+from django.db.models import Q, Sum, Avg, Min, F, ExpressionWrapper, IntegerField
 import nested_admin
 from .models import Cliente, Sesion, Firma, Responsable, Pack
 
@@ -39,8 +39,11 @@ class SesionProximaFilter(admin.SimpleListFilter):
     def queryset(self, request, queryset):
         if self.value() == 'si':
             qs_preparado = queryset.annotate(es_proxima=ExpressionWrapper(F('actual')-F('pack__proxima'),
-                                                                          output_field=BooleanField()))
-            return qs_preparado.filter(es_proxima=True)
+                                                                          output_field=IntegerField()))
+            for s in qs_preparado:
+                print('cliente: %s - sesion actual: %s - proxima: %s' %(s.cliente, s.actual, s.pack.proxima))
+            # Si actual-pack__proxima=0 quiere decir que es la próxima
+            return qs_preparado.filter(es_proxima=0)
 
 class SesionEsPackFilter(admin.SimpleListFilter):
     title = 'si es pack o no'
