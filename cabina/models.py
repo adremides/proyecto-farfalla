@@ -33,15 +33,19 @@ class Sesion(models.Model):
     pack = models.ForeignKey('cabina.Pack', on_delete=models.CASCADE, null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        estoy_creando = not self.pk
+        estoy_modificando = self.pk
         super(Sesion, self).save(*args, **kwargs)
-        if not estoy_creando:
+
+        # Si estoy modificando y es una sesión pack guardo la próxima sesión
+        if estoy_modificando and self.pack:
             print('la diferencia entre self.actual(%s) y self.pack.proxima (%s) es %s' %(self.actual,
                                                                                          self.pack.proxima,
                                                                                          self.actual - self.pack.proxima))
             if self.actual - self.pack.proxima == 0: # Esto detecta si es la próxima sesion disponible
                 # Si es, la próxima será la siguiente del pack, a menos de que esta sea la última
-                registro_pack = Pack.objects.filter(pk=self.pack.pk).update(proxima=self.actual + 1)
+                registro_pack = Pack.objects.filter(pk=self.pack.pk)
+                print(registro_pack)
+                registro_pack.update(proxima=self.actual + 1)
 
 
     def es_pack(self):
