@@ -2,35 +2,46 @@ from django.db import models
 from django.utils import timezone
 from jsignature.fields import JSignatureField
 
+
 class Responsable(models.Model):
     nombre = models.CharField(max_length=75)
+
+    objects = models.Manager()
 
     def __str__(self):
         return str(self.nombre)
 
+
 class Cliente(models.Model):
     fecha_incorporacion = models.DateTimeField('Fecha de incorporación', default=timezone.now)
     nombre_y_apellido = models.CharField(max_length=75)
-    telefono = models.CharField('Teléfono',max_length=50, blank=True, null=True)
+    telefono = models.CharField('Teléfono', max_length=50, blank=True, null=True)
     consintio = models.BooleanField('Consintió', default=False)
+
+    objects = models.Manager()
 
     def __str__(self):
         return str(self.nombre_y_apellido)
 
+
 class Sesion(models.Model):
     cliente = models.ForeignKey('cabina.Cliente', on_delete=models.PROTECT)
     fecha = models.DateField('Fecha de la sesión', default=timezone.now, null=True, blank=True)
-    duracion = models.IntegerField("Duración",
-                                choices=(
-                                            (5, '5 minutos'),
-                                            (10, '10 minutos'),
-                                        )
-                                )
+    duracion = models.IntegerField(
+        "Duración",
+        choices=(
+            (5, '5 minutos'),
+            (10, '10 minutos'),
+        )
+
+    )
     responsable = models.ForeignKey('cabina.Responsable',
                                     on_delete=models.PROTECT)
     pagada = models.BooleanField("Pagada", default=False)
     actual = models.IntegerField('Sesión pack', null=True, blank=True)
     pack = models.ForeignKey('cabina.Pack', on_delete=models.CASCADE, null=True, blank=True)
+
+    objects = models.Manager()
 
     def save(self, *args, **kwargs):
         estoy_modificando = self.pk
@@ -38,29 +49,30 @@ class Sesion(models.Model):
 
         # Si estoy modificando y es una sesión pack guardo la próxima sesión
         if estoy_modificando and self.pack:
-            print('la diferencia entre self.actual(%s) y self.pack.proxima (%s) es %s' %(self.actual,
-                                                                                         self.pack.proxima,
-                                                                                         self.actual - self.pack.proxima))
-            if self.actual - self.pack.proxima == 0: # Esto detecta si es la próxima sesion disponible
+            print('la diferencia entre self.actual(%s) y self.pack.proxima (%s) es %s' % (
+                self.actual,
+                self.pack.proxima,
+                self.actual - self.pack.proxima)
+            )
+            if self.actual - self.pack.proxima == 0:  # Esto detecta si es la próxima sesion disponible
                 # Si es, la próxima será la siguiente del pack, a menos de que esta sea la última
                 registro_pack = Pack.objects.filter(pk=self.pack.pk)
                 print(registro_pack)
                 registro_pack.update(proxima=self.actual + 1)
 
-
     def es_pack(self):
-        if self.pack != None:
+        if self.pack is not None:
             return str(self.actual) + ' de ' + str(self.pack.cant_sesiones)
         else:
             return "No es pack"
     es_pack.short_description = 'Pack'
 
     def esta_firmada(self):
-        firmas = self.firma_set.all() # Siempre va a haber una sola firma por sesión
-        if firmas: # Esto comprueba que exista al menos 1 registro
-            firmada = bool(firmas[0].firma) # Si el campo firma (string) está vacío esto es False, sino True
+        firmas = self.firma_set.all()  # Siempre va a haber una sola firma por sesión
+        if firmas:  # Esto comprueba que exista al menos 1 registro
+            firmada = bool(firmas[0].firma)  # Si el campo firma (string) está vacío esto es False, sino True
         else:
-            firmada = False # si no hay un registro de firma, lógicamente no está firmada
+            firmada = False  # si no hay un registro de firma, lógicamente no está firmada
         return firmada
     esta_firmada.boolean = True
     esta_firmada.short_description = 'Firmada'
@@ -77,32 +89,40 @@ class Sesion(models.Model):
         verbose_name = 'Sesión'
         verbose_name_plural = 'Sesiones'
 
+
 class Firma(models.Model):
     sesion = models.ForeignKey('cabina.Sesion', on_delete=models.CASCADE)
     firma = JSignatureField(blank=True, null=True)
 
+    objects = models.Manager()
+
     def __str__(self):
         return ''
 
+
 class Pack(models.Model):
     cliente = models.ForeignKey('cabina.Cliente', on_delete=models.PROTECT)
-    cant_sesiones = models.IntegerField("Cantidad de sesiones",
-                                choices=(
-                                            (1, '1 sesión'),
-                                            (2, '2 sesiones'),
-                                            (4, '4 sesiones'),
-                                            (10, '10 sesiones'),
-                                        )
-                                )
-    tipo = models.IntegerField("Tipo",
-                                choices=(
-                                            (5, 'Suave'),
-                                            (10, 'Fuerte'),
-                                        )
-                                )
+    cant_sesiones = models.IntegerField(
+        "Cantidad de sesiones",
+        choices=(
+            (1, '1 sesión'),
+            (2, '2 sesiones'),
+            (4, '4 sesiones'),
+            (10, '10 sesiones'),
+        )
+    )
+    tipo = models.IntegerField(
+        "Tipo",
+        choices=(
+            (5, 'Suave'),
+            (10, 'Fuerte'),
+        )
+    )
     pagada = models.BooleanField("Pagada", default=False)
     responsable = models.ForeignKey('cabina.Responsable', on_delete=models.PROTECT)
     proxima = models.PositiveIntegerField('Próxima sesión disponible', default=1)
+
+    objects = models.Manager()
 
     def save(self, *args, **kwargs):
         estoy_creando = not self.pk
@@ -117,9 +137,13 @@ class Pack(models.Model):
                                           pack=self,
                                           pagada=self.pagada,
                                           actual=actual)
-                p.save()
+                print("%s creado!" % p)
         else:
-            registros_sesiones = Sesion.objects.filter(pack=self.pk).update(cliente=self.cliente)
+            registros_sesiones = Sesion.objects.filter(pack=self.pk)
+            for s in registros_sesiones:
+                print('cliente: %s - sesion actual: %s - proxima: %s' % (s.cliente, s.actual, s.pack.proxima))
+                # .update(cliente=self.cliente)
+            pass
 
     def __str__(self):
         # get_field_display() muestra el str del choice que lleva el campo cant_sesiones del modelo Pack
